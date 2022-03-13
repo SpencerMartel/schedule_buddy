@@ -14,8 +14,8 @@ class_file = 'Data/Classes.json'
 current_semesters_file = 'Data/CurrentSemesters.json'
 line = '---------------------------------------------'
 client = discord.Client()
-Token = discord_config["token"]
-#this is the password for the bot to enter the discord server, you have to give it access to the server on the discord developer portal
+Token = str(discord_config["token"])
+# this is the password for the bot to enter the discord server, you have to give it access to the server on the discord developer portal
 
 # current_semester_numbers and function will need to change every semester, get semester numbers from https://github.com/opendataConcordiaU/documentation/blob/master/v1/courses/schedule.md.
 # Check to see if link is still alive / proper.
@@ -121,9 +121,12 @@ async def on_message(message):
             relevant_subject = f'{user_message[0].upper()} {user_message[1]}'
             relevant_title = course_title['courseTitle']
             sending_data = centering_func(relevant_subject, relevant_title, queried_semester_number)
+            lecture_data = ''
+            else_data = ''
             for obj in final_data:
                 constructing_data = []
                 relevant_type = obj['componentDescription']
+                print(relevant_type)
                 relevant_location = obj['locationCode']
                 relevant_room = obj['roomCode']
                 relevant_capacity = obj['enrollmentCapacity']
@@ -136,10 +139,7 @@ async def on_message(message):
 
                 #Sometimes Concordia overbooks and it makes it looks like the bot is broken, this adds a little message to let people know it's not but only when it looks like it might be.
                 #the variable enrollment_string is used in the constructing_data that wil be used.
-                if relevant_enrollment > relevant_capacity:
-                    enrollement_string = (f'Seats Filled:  {relevant_enrollment}/{relevant_capacity}  (Concordia overbooks some classes, it\'s not unusual for enrollment to exceed stated capacity)')
-                else:
-                    enrollement_string = (f'Seats Filled:  {relevant_enrollment}/{relevant_capacity}')
+                enrollement_string = (f'Seats Filled:  {relevant_enrollment}/{relevant_capacity}')
             
                 #The times needed some formatting to make em pretty. Seperating them for legibility
                 start_time = str(obj['classStartTime'])
@@ -149,9 +149,13 @@ async def on_message(message):
                 working_end_time = end_time.split('.',2)
                 relevant_end_time = (working_end_time[0] + ':' + working_end_time[1])
                 class_occurance_string = class_days(obj)
-                constructing_data = (f"Type:  {relevant_type}\nSection:  {relevant_section}\nLocation:  {relevant_location} --- {relevant_room}\nClass Days:  {class_occurance_string}\nClass Time:  {relevant_start_time} - {relevant_end_time}\n{enrollement_string}\nStudents Waitlisted:  {relevant_waitlist}\n--------------------------------\n")
-
-                sending_data += constructing_data
+                if relevant_type == 'Lecture':
+                    constructing_lecture_data = (f"Type:  {relevant_type}\nSection:  {relevant_section}\nLocation:  {relevant_location} --- {relevant_room}\nClass Days:  {class_occurance_string}\nClass Time:  {relevant_start_time} - {relevant_end_time}\n{enrollement_string}\nStudents Waitlisted:  {relevant_waitlist}\n--------------------------------\n")
+                    lecture_data += lecture_data + constructing_lecture_data
+                else:
+                    constructing_else_data = (f"Type:  {relevant_type}\nSection:  {relevant_section}\nLocation:  {relevant_location} --- {relevant_room}\nClass Days:  {class_occurance_string}\nClass Time:  {relevant_start_time} - {relevant_end_time}\n{enrollement_string}\nStudents Waitlisted:  {relevant_waitlist}\n--------------------------------\n")
+                    else_data += constructing_else_data
+            sending_data += lecture_data + else_data
             print(f'The bot is sending the following\n', sending_data)
             #This await command is when the bot will send the relevant info to discord.
             if len(sending_data) >= 4000:
