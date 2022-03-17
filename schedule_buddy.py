@@ -99,7 +99,7 @@ async def on_message(message):
             print(f'The queried department is: {queried_course}\nThe queried queried_course number is: {queried_number}\nThe queried semester is: {queried_semester_number}')
             print('---------------------------------------------')
 
-            #check to see if the queried_course is offered in the semester the user wants to know about
+            # Check to see if the queried_course is offered in the semester the user wants to know about
             # Then grab object containing semester info
             semester_object = grab_semester_tupple(queried_semester_number)
 
@@ -112,7 +112,11 @@ async def on_message(message):
 
             # This is our check to see if the class is offered in the queried semester. If variable is empty, it's not offered and we throw a message.
             if final_data == []:
-                await message.reply (f'{queried_course.capitalize()} {queried_number} is **not offered** in the {user_message[2]} semester')
+                print('semester object 1 is:', semester_object[1])
+                if user_message[2].lower() == 'summer':
+                    await message.reply (f'{queried_course.capitalize()} {queried_number} **may be offered** in the {semester_object[1]} semester.\nConcordia doesn\'t let me see all of the summer classes offered :expressionless:.\nCheck your MyConcordia to see if it is offered in the summer')
+                else:
+                    await message.reply (f'{queried_course.capitalize()} {queried_number} is **not offered** in the {user_message[2]} semester.')
                 return
 
             offered_this_semester = (f'\nThis course is offered in the {semester_object[1]} semester.')
@@ -158,7 +162,7 @@ async def on_message(message):
             sending_data += lecture_data + else_data
             print(f'The bot is sending the following\n', sending_data)
             #This await command is when the bot will send the relevant info to discord.
-            if len(sending_data) >= 4000:
+            if len(sending_data) >= 2000:
                 await message.reply (f'This class has too many sections for me to send :sob:.\nYou may want to visit this link for more info on your classes:\nhttps://www.concordia.ca/academics/undergraduate/calendar/current/courses-quick-links.html')
             await message.reply(f'{sending_data}', allowed_mentions = am)
             final_data = []
