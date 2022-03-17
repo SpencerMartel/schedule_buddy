@@ -1,4 +1,4 @@
-Schedule Buddy
+## Schedule Buddy
 
 This is a discord bot made to help Concordia students plan their schedule, or to just give general info about which semesters queried courses are offered in and general information about them.
 (The following is repeated in the bot's 'info' prompt
