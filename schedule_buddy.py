@@ -53,7 +53,8 @@ async def on_ready():
 #this event is the meat and potatoes
 @client.event
 async def on_message(message):
-    if message.channel.name == discord_config["channel"]:
+    channel_check = message.channel.id in discord_config["channel_id"]
+    if channel_check == True:
         if message.author == client.user:
             return
         am = discord.AllowedMentions(users = False, everyone = False, roles = False, replied_user = True)
