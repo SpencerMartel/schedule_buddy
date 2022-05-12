@@ -1,7 +1,6 @@
 # Project Ignores
 Config/Config.py
-Data/*
-Old_Versions/*
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
