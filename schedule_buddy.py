@@ -8,10 +8,11 @@ import json
 import re
 import datetime
 from datetime import datetime, timedelta
-from Config.config import discord_config
+from Config.config import *
 
 class_file = 'Data/Classes.json'
 current_semesters_file = 'Data/CurrentSemesters.json'
+prereqs_file = 'Data/Prereqs.json'
 line = '---------------------------------------------'
 client = discord.Client()
 Token = str(discord_config["token"])
@@ -22,7 +23,7 @@ Token = str(discord_config["token"])
 
 # TODO create mapping function to CurrentSemesters.json
 current_semester_numbers = ['2221','2222','2223','2224']
-current_info_link = 'https://www.concordia.ca/academics/undergraduate/calendar/current/courses-quick-links.html'
+current_info_link = 'https://www.concordia.ca/academics/undergraduate/calendar.html'
 
 def populate_current_semester_file(semesters_file, current_semester_numbers):
     file = open(semesters_file, 'w')
@@ -61,6 +62,7 @@ async def on_message(message):
         author = str(message.author.id)
         class_list_json = load_classes()
         semester_list_json = read_current_semester_file()
+        prereqs_list_json = load_prereqs()
         
         # help message prompt
         if message.content.lower() == 'help':
@@ -94,11 +96,10 @@ async def on_message(message):
             reply = check_semester_availability(class_list_json, queried_course, queried_number)
             await message.reply(reply)
         elif len(user_message) == 3 or 4:
-            print('Correct channel detected')
             queried_semester_number = queried_semester_number_str(user_message)
             
             print(f'The queried department is: {queried_course}\nThe queried queried_course number is: {queried_number}\nThe queried semester is: {queried_semester_number}')
-            print('---------------------------------------------')
+            print(line)
 
             # Check to see if the queried_course is offered in the semester the user wants to know about
             # Then grab object containing semester info
@@ -108,16 +109,11 @@ async def on_message(message):
             working_semester_json = list(filter(lambda x: x['termCode'] in queried_semester_number, class_list_json))
             working_course_json = list(filter(lambda x: x['subject'] in [queried_course], working_semester_json))
             final_data = list(filter(lambda x: x['catalog'] in [queried_number], working_course_json))
-            print('This is the final_data that will be used\n', json.dumps(final_data, indent = 4))
-            print('---------------------------------------------')
+            print('This is the final_data that will be used\n', json.dumps(final_data, indent = 4),'\n',line)
 
             # This is our check to see if the class is offered in the queried semester. If variable is empty, it's not offered and we throw a message.
             if final_data == []:
-                print('semester object 1 is:', semester_object[1])
-                if user_message[2].lower() == 'summer':
-                    await message.reply (f'{queried_course.capitalize()} {queried_number} **may be offered** in the {semester_object[1]} semester.\nConcordia doesn\'t let me see all of the summer classes offered :expressionless:.\nCheck your MyConcordia to see if it is offered in the summer')
-                else:
-                    await message.reply (f'{queried_course.capitalize()} {queried_number} is **not offered** in the {user_message[2]} semester.')
+                await message.reply (f'{queried_course.capitalize()} {queried_number} is **not offered** in the {user_message[2]} semester.')
                 return
 
             offered_this_semester = (f'\nThis course is offered in the {semester_object[1]} semester.')
@@ -125,13 +121,14 @@ async def on_message(message):
 
             relevant_subject = f'{user_message[0].upper()} {user_message[1]}'
             relevant_title = course_title['courseTitle']
-            sending_data = centering_func(relevant_subject, relevant_title, queried_semester_number)
+            relevant_prereqs = prereqs_mapping(final_data)
+            sending_data = centering_func(relevant_subject, relevant_title, queried_semester_number, relevant_prereqs)
+            sending_data += relevant_prereqs + '\n' + '----------------------------------------------------------' + '\n'
             lecture_data = ''
             else_data = ''
             for obj in final_data:
                 constructing_data = []
                 relevant_type = obj['componentDescription']
-                print(relevant_type)
                 relevant_location = obj['locationCode']
                 relevant_room = obj['roomCode']
                 relevant_capacity = obj['enrollmentCapacity']
@@ -139,7 +136,7 @@ async def on_message(message):
                 relevant_section = obj['section']
                 relevant_instruction_mode = obj['instructionModeDescription']
                 relevant_waitlist = obj['currentWaitlistTotal']
-                    # Throw in if to check section if they only want one specific section here
+                    # TODO Throw in if to check section if they only want one specific section here
                     # This can only happen once we figure out regex.
 
                 #Sometimes Concordia overbooks and it makes it looks like the bot is broken, this adds a little message to let people know it's not but only when it looks like it might be.
@@ -163,22 +160,16 @@ async def on_message(message):
             sending_data += lecture_data + else_data
             print(f'The bot is sending the following\n', sending_data)
             #This await command is when the bot will send the relevant info to discord.
-            if len(sending_data) >= 2000:
-                await message.reply (f'This class has too many sections for me to send :sob:.\nYou may want to visit this link for more info on your classes:\nhttps://www.concordia.ca/academics/undergraduate/calendar/current/courses-quick-links.html')
+            print('Length of the final message is:', len(sending_data))
+            if len(sending_data) >= 4000:
+                await message.reply (f'{queried_course.capitalize()} {queried_number} --- {relevant_title} has too many sections for me to send :sob:.\nYou may want to visit this link for more info on your classes:\n{current_info_link}')
             await message.reply(f'{sending_data}', allowed_mentions = am)
             final_data = []
         else:
-            await message.reply (f'{queried_course} {queried_number} is not offered in the {semester_object[1]} semester.\nIf you think it is, check your spelling and make sure there is a space between the class name, number, semester, and year ex. geog 363 winter 2022')
+            await message.reply (f'{queried_course.capitalize()} {queried_number} is not offered in the {semester_object[1]} semester.\nIf you think it is, check your spelling and make sure there is a space between the class name, number, semester, and year ex. geog 363 winter 2022')
             print('This queried course is not offered in the', user_message[2].lower(), 'semester\n This message comes up when it truly isnt offered, or if the user input doesnt match the expected input')
             return
 
-# Old unused function to build get request url
-def url_builder(queried_course, number):
-    base_url = ('https://opendata.concordia.ca/API/v1/queried_course/schedule/filter/*/')
-    slash = "/"
-    url = (base_url + queried_course + slash + number)
-    print('The url for the get request is: ', url)
-    return url
 
 # TODO Make this rely on CurrentSemesters file.
 def queried_semester_number_str(user_message):
@@ -207,6 +198,19 @@ def clean_duplicate_data(working_data):
     print('Data is cleaned (removed of duplicates)')
     return clean_data
 
+def prereqs_mapping(final_data):
+    course_id = final_data[0]['courseID']
+    prereqs = load_prereqs()
+    for obj in prereqs:
+        if obj['ID'] == course_id:
+            prereqs = obj['prerequisites']
+    if prereqs == '' or "":
+        prereqs = 'This course has no prerequisites.'
+    else:
+        prereqs = prereqs
+    print(prereqs)
+    return prereqs
+
 # This is a stupid function because I couldnt get to the layer to grab the course title, hopefully it doesnt break shit
 def return_obj_copy(working_data):
     for obj in working_data:
@@ -215,8 +219,8 @@ def return_obj_copy(working_data):
 # Get request and saving relevant semesters to Data/Classes.json
 # Gets called upon the bot entering the server, and once a day in a task loop.
 def fetch_and_save_classes(current_semester_numbers):
-    print('Beginning fetch and save function')
-    auth = HTTPBasicAuth('449','1d82e249a3b972561791eeefd1dca83a')
+    print('Beginning fetch and save classes function')
+    auth = API_config['auth']
     r = requests.get('https://opendata.concordia.ca/API/v1/course/schedule/filter/*/*/*', auth = auth)
     input_json = list(json.loads(r.text))
     relevant_semesters = list(filter(lambda x: x['termCode'] in current_semester_numbers, input_json))
@@ -225,13 +229,31 @@ def fetch_and_save_classes(current_semester_numbers):
     class_list = open(class_file, 'w' )
     class_list.write(output_json)
     class_list.close
-    print('Daily class fetch has been completed\n', line)
+    print('Daily class fetch has been completed\n')
+
+def fetch_and_save_prereqs():
+    print('Beginning fetch and save prereqs function')
+    auth = API_config['auth']
+    r = requests.get('https://opendata.concordia.ca/API/v1/course/catalog/filter/*/*/*', auth = auth)
+    input_json = list(json.loads(r.text))
+    clean_input_json = clean_duplicate_data(input_json)
+    output_json = json.dumps(clean_input_json, indent = 4)
+    prereqs_list = open(prereqs_file, 'w' )
+    prereqs_list.write(output_json)
+    prereqs_list.close
+    print('Daily prereqs fetch has been completed\n')
 
 def load_classes():
     file = open(class_file, 'r')
     class_list = file.read()
     file.close()
     return json.loads(class_list)
+
+def load_prereqs():
+    file = open(prereqs_file, 'r')
+    prereqs_list = file.read()
+    file.close()
+    return json.loads(prereqs_list)
 
 def read_current_semester_file():
     file = open(current_semesters_file, 'r')
@@ -247,22 +269,19 @@ def grab_semester_tupple(queried_semester_number):
             return semester_list
 
 # Big ol function that lets the user know which semesters their queried course is offered in out of the ones the bot is looking at.
-# Called if len(user_message) == 2 as in GEOG 363
+# Called if len(user_message) == 2 as in Geog 363
 def check_semester_availability(class_list_json, queried_course, queried_number):
     print(line)
     reply_string = f'**{queried_course.lower().capitalize()} {queried_number}** is offered in the following semesters:\n'
-    flag = 0
     working_data = []
     final_data = {}
     for key in class_list_json:
         if (queried_course == key['subject'] and queried_number == key['catalog']) == True:
-            flag = flag + 1
             dirty_tupple = grab_semester_tupple(key['termCode'])
             working_data.append(dirty_tupple)
     final_data = clean_duplicate_data(working_data)
     print('Semester final data is:', final_data)
     for key in final_data:
-        flag = flag + 1
         clean_tupple = grab_semester_tupple(key[0])
         reply_string += f'• {clean_tupple[1].capitalize()}\n'
     reply_string += f'\nTo view the sections offered each semester send another message with the following format:\n{queried_course.capitalize()} {queried_number} semester year'
@@ -271,7 +290,7 @@ def check_semester_availability(class_list_json, queried_course, queried_number)
     print(line,'\nThe bot is sending the following:\n', reply_string, '\n', line)
     return reply_string
 
-def centering_func(subject, title, number):
+def centering_func(subject, title, number, prereqs):
     object = grab_semester_tupple(number)
     backn = '\n'
     sending1 = '----------------------------------------------------------'
@@ -279,8 +298,7 @@ def centering_func(subject, title, number):
     centered_sending2 = sending2.center(48)
     sending3 = f'{object[1].upper()} SEMESTER'
     centered_sending3 = sending3.center(len(sending1))
-    sending4 = '----------------------------------------------------------'
-    sending_data = sending1 +backn +centered_sending2 + backn + centered_sending3 + backn + sending4 + backn
+    sending_data = sending1 +backn +centered_sending2 + backn + centered_sending3 + backn + sending1 + backn
     return sending_data
 
 def class_days(obj):
@@ -310,6 +328,7 @@ def listtostring(x):
 @tasks.loop(hours = 24)
 async def daily_classesjson_update():
     fetch_and_save_classes(current_semester_numbers)
+    fetch_and_save_prereqs()
 
 @daily_classesjson_update.before_loop
 async def configure_daily_classesjson_update():
@@ -325,8 +344,9 @@ async def configure_daily_classesjson_update():
     print('The loop will run in:', future - now)
     await asyncio.sleep((future-now).seconds)
 
-# Initialize our files on start of program, comment out while working on it it takes a while, unless you need to initialize Data/Classes.json with data
+# Initialize our files on start of program, comment out while working on it, it takes a while, unless you need to initialize anything in the Data folder.
 # fetch_and_save_classes(current_semester_numbers)
+# fetch_and_save_prereqs()
 populate_current_semester_file(current_semesters_file, current_semester_numbers)
 
 daily_classesjson_update.start()

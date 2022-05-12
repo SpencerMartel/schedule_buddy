@@ -3,3 +3,7 @@ discord_config = {
   "channel":"channel_name",
   "channel_id":123456,
 }
+
+API_config = {
+  "auth":('User','Key'),
+}
