@@ -1,5 +1,6 @@
 # Project Ignores
 Config/Config.py
+tempCodeRunnerFile.py
 
 
 # Byte-compiled / optimized / DLL files
@@ -126,5 +127,3 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-
-tempCodeRunnerFile.py
