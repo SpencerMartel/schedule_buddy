@@ -32,7 +32,7 @@ def populate_current_semester_file(semesters_file, current_semester_numbers):
     semester_json[current_semester_numbers[1]] = 'fall 2022'
     semester_json[current_semester_numbers[2]] = 'fall/winter 2022/23'
     semester_json[current_semester_numbers[3]] = 'winter 2023'
-    semester_json_object = {'currentsemesters':semester_json}
+    semester_json_object = semester_json
     semester_json_string = json.dumps(semester_json_object,indent = 4, sort_keys=False)
     file.write(semester_json_string)
     file.close()
@@ -185,10 +185,10 @@ def queried_semester_number_str(user_message):
     return queried_semester_number
 
 #Noice lil function to remove duplicate data sent from the API, also used to check which semesters a class is offered in.
-def clean_duplicate_data(working_data):
+def clean_duplicate_data(data_to_clean):
     print('Entering clean_duplicate_data function')
     clean_data = []
-    for obj in working_data:
+    for obj in data_to_clean:
         if clean_data.__contains__(obj):
             del obj
         else:
@@ -257,7 +257,7 @@ def read_current_semester_file():
 
 def grab_semester_tupple(queried_semester_number):
     semester_list_json = read_current_semester_file()
-    for key, value in semester_list_json['currentsemesters'].items():
+    for key, value in semester_list_json.items():
         if queried_semester_number == key:
             semester_list = [key,value]
             return semester_list
