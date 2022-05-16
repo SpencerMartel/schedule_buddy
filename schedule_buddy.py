@@ -32,7 +32,7 @@ def populate_current_semester_file(semesters_file, current_semester_numbers):
     semester_json[current_semester_numbers[1]] = 'fall 2022'
     semester_json[current_semester_numbers[2]] = 'fall/winter 2022/23'
     semester_json[current_semester_numbers[3]] = 'winter 2023'
-    semester_json_object = {'currentsemesters':semester_json}
+    semester_json_object = semester_json
     semester_json_string = json.dumps(semester_json_object,indent = 4, sort_keys=False)
     file.write(semester_json_string)
     file.close()
@@ -63,7 +63,6 @@ async def on_message(message):
     author = str(message.author.id)
     class_list_json = load_classes()
     semester_list_json = read_current_semester_file()
-    prereqs_list_json = load_prereqs()
     
     # help message prompt
     if message.content.lower() == 'help':
@@ -107,7 +106,7 @@ async def on_message(message):
         working_semester_json = list(filter(lambda x: x['termCode'] in queried_semester_number, class_list_json))
         working_course_json = list(filter(lambda x: x['subject'] in [queried_course], working_semester_json))
         final_data = list(filter(lambda x: x['catalog'] in [queried_number], working_course_json))
-        print('This is the final_data that will be used\n', json.dumps(final_data, indent = 4),'\n',line)
+
 
         # This is our check to see if the class is offered in the queried semester. If variable is empty, it's not offered and we throw a message.
         if final_data == []:
@@ -115,10 +114,13 @@ async def on_message(message):
             return
 
         # Now we start collecting the data we want from final_data to format it
-        course_title = return_obj_copy(final_data)
-        relevant_subject = f'{user_message[0].upper()} {user_message[1]}'
-        relevant_title = course_title['courseTitle']
-        relevant_prereqs = prereqs_mapping(final_data)
+        relevant_title = final_data[0]['courseTitle']
+        subject = final_data[0]['subject']
+        course = final_data[0]['catalog']
+        relevant_subject = f'{subject} {course}'
+        relevant_prereqs = final_data[0]['prerequisites']
+        if relevant_prereqs == "":
+            relevant_prereqs = 'This course has no prerequisites.'
         sending_data = centering_func(relevant_subject, relevant_title, queried_semester_number, relevant_prereqs)
         sending_data += relevant_prereqs + '\n' + '----------------------------------------------------------' + '\n'
         lecture_data = ''
@@ -183,10 +185,10 @@ def queried_semester_number_str(user_message):
     return queried_semester_number
 
 #Noice lil function to remove duplicate data sent from the API, also used to check which semesters a class is offered in.
-def clean_duplicate_data(working_data):
+def clean_duplicate_data(data_to_clean):
     print('Entering clean_duplicate_data function')
     clean_data = []
-    for obj in working_data:
+    for obj in data_to_clean:
         if clean_data.__contains__(obj):
             del obj
         else:
@@ -195,49 +197,41 @@ def clean_duplicate_data(working_data):
     print('Data is cleaned (removed of duplicates)')
     return clean_data
 
-def prereqs_mapping(final_data):
-    course_id = final_data[0]['courseID']
-    prereqs = load_prereqs()
-    for obj in prereqs:
-        if obj['ID'] == course_id:
-            prereqs = obj['prerequisites']
-    if prereqs == '' or "":
-        prereqs = 'This course has no prerequisites.'
-    else:
-        prereqs = prereqs
-    return prereqs
-
-# This is a stupid function because I couldnt get to the layer to grab the course title, hopefully it doesnt break shit
-def return_obj_copy(working_data):
-    for obj in working_data:
-        return obj
-
 # Get request and saving relevant semesters to Data/Classes.json
 # Gets called upon the bot entering the server, and once a day in a task loop.
 def fetch_and_save_classes(current_semester_numbers):
     print('Beginning fetch and save classes function')
+    fetch_and_save_prereqs()
     auth = API_config['auth']
     r = requests.get('https://opendata.concordia.ca/API/v1/course/schedule/filter/*/*/*', auth = auth)
     input_json = list(json.loads(r.text))
     relevant_semesters = list(filter(lambda x: x['termCode'] in current_semester_numbers, input_json))
     clean_relevant_semesters = clean_duplicate_data(relevant_semesters)
+    prereqs = load_prereqs()
+    for classes in clean_relevant_semesters:
+        for courses in prereqs:
+            if classes['courseID'] == courses['ID']:
+                classes['prerequisites'] = courses['prerequisites'].strip()
     output_json = json.dumps(clean_relevant_semesters, indent = 4)
     class_list = open(class_file, 'w' )
     class_list.write(output_json)
     class_list.close
-    print('Daily class fetch has been completed\n')
+    clear_prereqs()
+    print('Daily class fetch has been completed')
 
+# Data/Prereqs.json is a temporary storage to get the prereq info into Classes.json
 def fetch_and_save_prereqs():
-    print('Beginning fetch and save prereqs function')
+    print('Beginning fetch prereqs function')
     auth = API_config['auth']
     r = requests.get('https://opendata.concordia.ca/API/v1/course/catalog/filter/*/*/*', auth = auth)
     input_json = list(json.loads(r.text))
     clean_input_json = clean_duplicate_data(input_json)
     output_json = json.dumps(clean_input_json, indent = 4)
-    prereqs_list = open(prereqs_file, 'w' )
-    prereqs_list.write(output_json)
-    prereqs_list.close
-    print('Daily prereqs fetch has been completed\n')
+    prereq_list = open(prereqs_file, 'w' )
+    prereq_list.write(output_json)
+    prereq_list.close
+    print("Finished fetch and save prereqs function")
+    return
 
 def load_classes():
     file = open(class_file, 'r')
@@ -251,6 +245,10 @@ def load_prereqs():
     file.close()
     return json.loads(prereqs_list)
 
+def clear_prereqs():
+    with open(prereqs_file, 'r+') as f:
+        f.truncate(0)
+
 def read_current_semester_file():
     file = open(current_semesters_file, 'r')
     current_semesters_json = file.read()
@@ -259,7 +257,7 @@ def read_current_semester_file():
 
 def grab_semester_tupple(queried_semester_number):
     semester_list_json = read_current_semester_file()
-    for key, value in semester_list_json['currentsemesters'].items():
+    for key, value in semester_list_json.items():
         if queried_semester_number == key:
             semester_list = [key,value]
             return semester_list
@@ -324,7 +322,6 @@ def listtostring(x):
 @tasks.loop(hours = 24)
 async def daily_classesjson_update():
     fetch_and_save_classes(current_semester_numbers)
-    fetch_and_save_prereqs()
 
 @daily_classesjson_update.before_loop
 async def configure_daily_classesjson_update():
@@ -342,8 +339,6 @@ async def configure_daily_classesjson_update():
 
 # Initialize our files on start of program, comment out while working on it, it takes a while, unless you need to initialize anything in the Data folder.
 # fetch_and_save_classes(current_semester_numbers)
-# fetch_and_save_prereqs()
 populate_current_semester_file(current_semesters_file, current_semester_numbers)
-
 daily_classesjson_update.start()
 client.run(Token)
