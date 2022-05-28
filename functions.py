@@ -45,7 +45,6 @@ def queried_semester_number_str(user_message):
 
 #Noice lil function to remove duplicate data sent from the API, also used to check which semesters a class is offered in.
 def clean_duplicate_data(data_to_clean):
-    print('Entering clean_duplicate_data function')
     clean_data = []
     for obj in data_to_clean:
         if clean_data.__contains__(obj):
@@ -53,7 +52,6 @@ def clean_duplicate_data(data_to_clean):
         else:
             obj_copy = obj.copy()
             clean_data.append(obj_copy)
-    print('Data is cleaned (removed of duplicates)')
     return clean_data
 
 # Get request and saving relevant semesters to Data/Classes.json
@@ -130,7 +128,7 @@ def check_semester_availability(class_list_json, queried_course, queried_number)
     if course_title == '':
         reply_string = f'**{queried_course.capitalize()} {queried_number}**  does not seem to exist, is there a typo or has concordia changed the course code?'
         return reply_string
-    reply_string = f'**{queried_course.capitalize()} {queried_number}** -- **{course_title}** is offered in the following semesters:\n'
+    reply_string = f'**{queried_course.capitalize()} {queried_number} --- {course_title}** is offered in the following semesters:\n'
     semester_list = semester_availability_list(class_list_json, queried_course, queried_number)
     semester_string= ''
     for semesters in semester_list:

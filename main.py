@@ -58,7 +58,6 @@ async def on_message(message):
     if message.content.lower() == 'hello':
         username = str(message.author).split('#')[0]
         await message.reply(f'Hi {username}!\nLove you pass it on:heart:')
-        return
 
     # These next variables store our parameters to know what the user is asking for
     user_message = re.split(' ', message.content)
@@ -83,7 +82,7 @@ async def on_message(message):
         working_semester_json = list(filter(lambda x: x['termCode'] in queried_semester_number, class_list_json))
         working_course_json = list(filter(lambda x: x['subject'] in [queried_course], working_semester_json))
         final_data = list(filter(lambda x: x['catalog'] in [queried_number], working_course_json))
-
+        print(f'The length of final data is: {len(final_data)}\nThis number should corespond to how many sections the bot sends.')
 
         # This is our check to see if the class is offered in the queried semester. If variable is empty, it's not offered and we throw a message.
         if final_data == []:
@@ -92,7 +91,7 @@ async def on_message(message):
             class_title = get_course_name(class_list_json, queried_course, queried_number)
             for semesters in semester_list:
                 semester_string += f'{semesters}'
-            await message.reply (f'**{queried_course.capitalize()} {queried_number}** -- **{class_title}** is not offered in the {user_message[2]} semester.\n{semester_string}To view the sections offered each semester send another message with the following format:\n{queried_course.capitalize()} {queried_number} semester year')
+            await message.reply (f'**{queried_course.capitalize()} {queried_number}** --- **{class_title}** is not offered in the {user_message[2]} semester.\n{semester_string}To view the sections offered each semester send another message with the following format:\n{queried_course.capitalize()} {queried_number} semester year')
             return
 
         # Now we start collecting the data we want from final_data to format it
@@ -107,8 +106,8 @@ async def on_message(message):
         sending_data += relevant_prereqs + '\n' + '----------------------------------------------------------' + '\n'
         lecture_data = ''
         else_data = ''
+
         for obj in final_data:
-            constructing_data = []
             relevant_type = obj['componentDescription']
             relevant_location = obj['locationCode']
             relevant_room = obj['roomCode']
@@ -121,7 +120,6 @@ async def on_message(message):
                 # This can only happen once we figure out regex.
 
             #Sometimes Concordia overbooks and it makes it looks like the bot is broken, this adds a little message to let people know it's not but only when it looks like it might be.
-            #the variable enrollment_string is used in the constructing_data that wil be used.
             enrollement_string = (f'Seats Filled:  {relevant_enrollment}/{relevant_capacity}')
         
             #The times needed some formatting to make em pretty. Seperating them for legibility
@@ -132,17 +130,20 @@ async def on_message(message):
             working_end_time = end_time.split('.',2)
             relevant_end_time = (working_end_time[0] + ':' + working_end_time[1])
             class_occurance_string = class_days(obj)
+
+            # Here we seperate lecture sections from lab or others to keep all available lecture sections at the top of the message.
             if relevant_type == 'Lecture':
                 constructing_lecture_data = (f"Type:  {relevant_type}\nSection:  {relevant_section}\nLocation:  {relevant_location} --- {relevant_room}\nClass Days:  {class_occurance_string}\nClass Time:  {relevant_start_time} - {relevant_end_time}\n{enrollement_string}\nStudents Waitlisted:  {relevant_waitlist}\n--------------------------------\n")
-                lecture_data += lecture_data + constructing_lecture_data
+                lecture_data += constructing_lecture_data
             else:
                 constructing_else_data = (f"Type:  {relevant_type}\nSection:  {relevant_section}\nLocation:  {relevant_location} --- {relevant_room}\nClass Days:  {class_occurance_string}\nClass Time:  {relevant_start_time} - {relevant_end_time}\n{enrollement_string}\nStudents Waitlisted:  {relevant_waitlist}\n--------------------------------\n")
                 else_data += constructing_else_data
-        sending_data += lecture_data + else_data
+        # This line brings all the strings together and is what the bot will send.
+        sending_data = sending_data + lecture_data + else_data
         print(f'The bot is sending the following\n', sending_data)
-        print('Length of the final message is:', len(sending_data))
-        if len(sending_data) >= 4000:
-            await message.reply (f'{queried_course.capitalize()} {queried_number} --- {relevant_title} has too many sections for me to send :sob:.\nYou may want to visit this link for more info on your classes:\n{current_info_link}')
+        print(f'Length of the final message is: {len(sending_data)}.\n2000 characters is the maximum, if it is exceded the code throws an error and so do we to the user.\n{line}')
+        if len(sending_data) >= 2000:
+            await message.reply (f'**{queried_course.capitalize()} {queried_number} --- {relevant_title}** has too many sections for me to send :sob:.\nYou may want to visit this link for more info on your classes:\n{current_info_link}')
         await message.reply(f'{sending_data}', allowed_mentions = am)
         final_data = []
     else:
