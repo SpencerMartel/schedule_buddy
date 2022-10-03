@@ -12,4 +12,3 @@ This bot grabs data from Concordia's Open Data project here:
 https://github.com/opendataConcordiaU/documentation
 This bot operates under the Creative Commons Attribution 4.0 International Public License. https://creativecommons.org/licenses/by/4.0/legalcode
 This bot is in no way affiliated to Concordia University.
-![ScheduleBuddy](https://user-images.githubusercontent.com/96750813/193604816-d8371817-3125-41f5-ae5a-0abf7bb12085.gif)
