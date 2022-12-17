@@ -12,3 +12,7 @@ This bot grabs data from Concordia's Open Data project here:
 https://github.com/opendataConcordiaU/documentation
 This bot operates under the Creative Commons Attribution 4.0 International Public License. https://creativecommons.org/licenses/by/4.0/legalcode
 This bot is in no way affiliated to Concordia University.
+
+
+https://user-images.githubusercontent.com/96750813/193606975-da9eb090-fc3b-4b42-96a3-4b7ae8924348.mov
+
