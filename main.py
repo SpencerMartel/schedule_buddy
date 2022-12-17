@@ -1,6 +1,5 @@
 import asyncio
 import discord
-from discord import Message
 from discord.ext import tasks
 import re
 import datetime
@@ -93,7 +92,7 @@ async def on_message(message):
                 semester_string += f'{semesters}'
             await message.reply (f'**{queried_course.capitalize()} {queried_number}** --- **{class_title}** is not offered in the {user_message[2]} semester.\n{semester_string}To view the sections offered each semester send another message with the following format:\n{queried_course.capitalize()} {queried_number} semester year')
             return
-
+            
         # Now we start collecting the data we want from final_data to format it
         relevant_title = final_data[0]['courseTitle']
         subject = final_data[0]['subject']
@@ -102,7 +101,7 @@ async def on_message(message):
         relevant_prereqs = final_data[0]['prerequisites']
         if relevant_prereqs == "":
             relevant_prereqs = 'This course has no prerequisites.'
-        sending_data = centering_func(relevant_subject, relevant_title, queried_semester_number, relevant_prereqs)
+        sending_data = centering_func(relevant_subject, relevant_title, queried_semester_number)
         sending_data += relevant_prereqs + '\n' + '----------------------------------------------------------' + '\n'
         lecture_data = ''
         else_data = ''
@@ -143,7 +142,7 @@ async def on_message(message):
         print(f'The bot is sending the following\n', sending_data)
         print(f'Length of the final message is: {len(sending_data)}.\n2000 characters is the maximum, if it is exceded the code throws an error and so do we to the user.\n{line}')
         if len(sending_data) >= 2000:
-            await message.reply (f'**{queried_course.capitalize()} {queried_number} --- {relevant_title}** has too many sections for me to send :sob:.\nYou may want to visit this link for more info on your classes:\n{current_info_link}')
+            await message.reply (f'**{queried_course.capitalize()} {queried_number} --- {relevant_title.title()}** has too many sections for me to send :sob:.\nYou may want to visit this link for more info on your classes:\n{current_info_link}')
         await message.reply(f'{sending_data}', allowed_mentions = am)
         final_data = []
     else:
@@ -154,7 +153,9 @@ async def on_message(message):
 
 @tasks.loop(hours = 24)
 async def daily_classesjson_update():
+    print('task loop started')
     fetch_and_save_classes(current_semester_numbers)
+    print('task loop finished')
 
 @daily_classesjson_update.before_loop
 async def configure_daily_classesjson_update():
@@ -171,7 +172,7 @@ async def configure_daily_classesjson_update():
     await asyncio.sleep((future-now).seconds)
 
 # Initialize our files on start of program, comment out while working on it, it takes a while, unless you need to initialize anything in the Data folder.
-# fetch_and_save_classes(current_semester_numbers)
+fetch_and_save_classes(current_semester_numbers)
 populate_current_semester_file(current_semesters_file, current_semester_numbers)
 daily_classesjson_update.start()
 client.run(Token)

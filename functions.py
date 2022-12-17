@@ -14,15 +14,15 @@ prereqs_file = 'Data/Prereqs.json'
 line = '---------------------------------------------'
 
 # Current_semester_numbers and function will need to change every semester, get semester numbers from https://github.com/opendataConcordiaU/documentation/blob/master/v1/courses/schedule.md.
-# TODO create mapping function to CurrentSemesters.json
-current_semester_numbers = ['2221','2222','2223','2224']
+current_semester_numbers = ['2223','2224']
+
+# TODO This should be a mapping function to CurrentSemesters.json
 def populate_current_semester_file(semesters_file, current_semester_numbers):
     file = open(semesters_file, 'w')
     semester_json = {}
-    semester_json[current_semester_numbers[0]] = 'summer 2022'
-    semester_json[current_semester_numbers[1]] = 'fall 2022'
-    semester_json[current_semester_numbers[2]] = 'fall/winter 2022/23'
-    semester_json[current_semester_numbers[3]] = 'winter 2023'
+    semester_json[current_semester_numbers[0]] = 'fall/winter 2022/23'
+    semester_json[current_semester_numbers[1]] = 'winter 2023'
+ 
     semester_json_object = semester_json
     semester_json_string = json.dumps(semester_json_object,indent = 4, sort_keys=False)
     file.write(semester_json_string)
@@ -126,9 +126,9 @@ def check_semester_availability(class_list_json, queried_course, queried_number)
     print(line)
     course_title = get_course_name(class_list_json, queried_course, queried_number)
     if course_title == '':
-        reply_string = f'**{queried_course.capitalize()} {queried_number}**  does not seem to exist, is there a typo or has concordia changed the course code?'
+        reply_string = f'**{queried_course.capitalize()} {queried_number}**  does not seem to exist, is there a typo or has Concordia changed the course code?'
         return reply_string
-    reply_string = f'**{queried_course.capitalize()} {queried_number} --- {course_title}** is offered in the following semesters:\n'
+    reply_string = f'**{queried_course.capitalize()} {queried_number}** is offered in the following semesters:\n'
     semester_list = semester_availability_list(class_list_json, queried_course, queried_number)
     semester_string= ''
     for semesters in semester_list:
@@ -165,7 +165,7 @@ def get_course_name(class_list_json, queried_course, queried_number):
             break
     return course_name
 
-def centering_func(subject, title, number, prereqs):
+def centering_func(subject, title, number):
     object = grab_semester_list(number)
     backn = '\n'
     sending1 = '----------------------------------------------------------'
