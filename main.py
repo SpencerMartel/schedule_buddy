@@ -65,11 +65,59 @@ async def on_message(message):
     print('User message as a list is:', user_message)
     print('length of user message is', len(user_message))
 
-    if len(user_message) == 2:
-        reply = check_semester_availability(class_list_json, queried_course, queried_number)
+    if len(user_message) == 2 or 3:
+        list_of_semesters = ['summer','winter','fall', 'fall/winter']
+        if user_message[1].lower() in list_of_semesters:
+            semesters_data = return_current_semester_file()
+            queried_semester_number = queried_semester_number_str(user_message, 1)
+            queried_semester_name = semesters_data[queried_semester_number]
+            working_semester_json = list(filter(lambda x: x['termCode'] in queried_semester_number, class_list_json))
+            working_course_json = list(filter(lambda x: x['subject'] in [queried_course], working_semester_json))
+
+            sending_list = []
+            for course in working_course_json:
+                catalog = course['catalog']
+                # Remove duplicates like labs, different lecture sections
+                if int(catalog) not in sending_list:
+                    sending_list.append(int(catalog))
+            
+            # Sort the list, makes for a cleaner display of courses
+            sorted_nums = sorted(sending_list)
+            
+            # Give each tier its own list to more clearly differentiate to the reader.
+            list_200 = []
+            list_300 = []
+            list_400 = []
+            list_else = []
+            for num in sorted_nums:
+                if num < 300:
+                    list_200.append(str(num))
+                elif num< 400:
+                    list_300.append(str(num))
+                elif num < 500:
+                    list_400.append(str(num))
+                else:
+                    list_else.append(str(num))
+
+            # Convert those lists into strings to send.
+            sending_string_200 = ', '.join(list_200)
+            sending_string_300 = ', '.join(list_300)
+            sending_string_400 = ', '.join(list_400)
+            sending_string_else = ', '.join(list_else)
+
+            # Build the final string to send
+            line = '----------------------------------------------------------'
+            reply = f'{line}\n**{user_message[0].upper()} courses offered in the {queried_semester_name.capitalize()} semester:**\n{line}\n**200s:**\n{sending_string_200}\n--------------------------------\n**300s:**\n{sending_string_300}\n--------------------------------\n**400s:**\n{sending_string_400}\n--------------------------------\n**Masters Level:**\n{sending_string_else}\n{line}'
+        
+        # If they didnt wan't the whole semester then they have asked for which semester a specific class is in
+        # TODO: could use more error handling
+        else:
+            reply = check_semester_availability(class_list_json, queried_course, queried_number)
+        # Send the string
         await message.reply(reply)
+
     elif len(user_message) == 3 or 4:
-        queried_semester_number = queried_semester_number_str(user_message)
+        queried_semester_number = queried_semester_number_str(user_message, 2)
         print(f'The queried department is: {queried_course}\nThe queried queried_course number is: {queried_number}\nThe queried semester is: {queried_semester_number}')
         print(line)
 
@@ -113,7 +161,6 @@ async def on_message(message):
             relevant_capacity = obj['enrollmentCapacity']
             relevant_enrollment = obj['currentEnrollment']
             relevant_section = obj['section']
-            relevant_instruction_mode = obj['instructionModeDescription']
             relevant_waitlist = obj['currentWaitlistTotal']
                 # TODO Throw in if to check section if they only want one specific section here
                 # This can only happen once we figure out regex.
@@ -172,7 +219,7 @@ async def configure_daily_classesjson_update():
     await asyncio.sleep((future-now).seconds)
 
 # Initialize our files on start of program, comment out while working on it, it takes a while, unless you need to initialize anything in the Data folder.
-fetch_and_save_classes(current_semester_numbers)
-populate_current_semester_file(current_semesters_file, current_semester_numbers)
+# fetch_and_save_classes(current_semester_numbers)
+populate_current_semester_file(current_semester_numbers)
 daily_classesjson_update.start()
 client.run(Token)

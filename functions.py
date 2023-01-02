@@ -1,11 +1,5 @@
-import asyncio
-import discord
-from discord import Message
-from discord.ext import tasks
 import requests
-from requests.models import HTTPBasicAuth
 import json
-import re
 from Config.config import *
 
 class_file = 'Data/Classes.json'
@@ -14,14 +8,16 @@ prereqs_file = 'Data/Prereqs.json'
 line = '---------------------------------------------'
 
 # Current_semester_numbers and function will need to change every semester, get semester numbers from https://github.com/opendataConcordiaU/documentation/blob/master/v1/courses/schedule.md.
-current_semester_numbers = ['2223','2224']
+current_semester_numbers = ['2221','2222','2223','2224']
 
 # TODO This should be a mapping function to CurrentSemesters.json
-def populate_current_semester_file(semesters_file, current_semester_numbers):
-    file = open(semesters_file, 'w')
+def populate_current_semester_file(current_semester_numbers):
+    file = open('Data/CurrentSemesters.json', 'w')
     semester_json = {}
-    semester_json[current_semester_numbers[0]] = 'fall/winter 2022/23'
-    semester_json[current_semester_numbers[1]] = 'winter 2023'
+    semester_json[current_semester_numbers[0]] = 'summer 2022'
+    semester_json[current_semester_numbers[1]] = 'fall 2022'
+    semester_json[current_semester_numbers[2]] = 'fall/winter 2022/23'
+    semester_json[current_semester_numbers[3]] = 'winter 2023'
  
     semester_json_object = semester_json
     semester_json_string = json.dumps(semester_json_object,indent = 4, sort_keys=False)
@@ -29,15 +25,21 @@ def populate_current_semester_file(semesters_file, current_semester_numbers):
     file.close()
     return semester_json
 
+def return_current_semester_file ():
+    file = open('Data/CurrentSemesters.json', 'r')
+    semester_json_string = json.load(file)
+    file.close()
+    return semester_json_string
+
 # TODO Make this rely on CurrentSemesters file.
-def queried_semester_number_str(user_message):
-    if user_message[2].lower() == 'fall': # TODO  add or 'autumn', for some reason this breaks it?!?
+def queried_semester_number_str(user_message, index):
+    if user_message[index].lower() == 'fall': # TODO  add or 'autumn', for some reason this breaks it?!?
         queried_semester_number = '2222'
-    elif user_message[2].lower() == 'fall/winter':
+    elif user_message[index].lower() == 'fall/winter':
         queried_semester_number = '2223'
-    elif user_message[2].lower() == 'winter':
+    elif user_message[index].lower() == 'winter':
         queried_semester_number = '2224'
-    elif user_message[2].lower() == 'summer':
+    elif user_message[index].lower() == 'summer':
         queried_semester_number = '2221'
     else:
         queried_semester_number = None
@@ -63,14 +65,14 @@ def fetch_and_save_classes(current_semester_numbers):
     r = requests.get('https://opendata.concordia.ca/API/v1/course/schedule/filter/*/*/*', auth = auth)
     input_json = list(json.loads(r.text))
     relevant_semesters = list(filter(lambda x: x['termCode'] in current_semester_numbers, input_json))
-    clean_relevant_semesters = clean_duplicate_data(relevant_semesters)
+    # clean_relevant_semesters = clean_duplicate_data(relevant_semesters)
     prereqs = load_prereqs()
     # Add prereqs to classes
-    for classes in clean_relevant_semesters:
+    for classes in relevant_semesters:
         for courses in prereqs:
             if classes['courseID'] == courses['ID']:
                 classes['prerequisites'] = courses['prerequisites'].strip()
-    output_json = json.dumps(clean_relevant_semesters, indent = 4)
+    output_json = json.dumps(relevant_semesters, indent = 4)
     class_list = open(class_file, 'w' )
     class_list.write(output_json)
     class_list.close
@@ -83,8 +85,8 @@ def fetch_and_save_prereqs():
     auth = API_config['auth']
     r = requests.get('https://opendata.concordia.ca/API/v1/course/catalog/filter/*/*/*', auth = auth)
     input_json = list(json.loads(r.text))
-    clean_input_json = clean_duplicate_data(input_json)
-    output_json = json.dumps(clean_input_json, indent = 4)
+    # clean_input_json = clean_duplicate_data(input_json)
+    output_json = json.dumps(input_json, indent = 4)
     prereq_list = open(prereqs_file, 'w' )
     prereq_list.write(output_json)
     prereq_list.close
