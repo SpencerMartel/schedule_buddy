@@ -36,9 +36,7 @@ async def on_message(message):
         return
     
     am = discord.AllowedMentions(users = False, everyone = False, roles = False, replied_user = True)
-    author = str(message.author.id)
     class_list_json = load_classes()
-    semester_list_json = read_current_semester_file()
     
     # help message prompt
     if message.content.lower() == 'help':
@@ -64,8 +62,10 @@ async def on_message(message):
     queried_number = user_message[1]
     print('User message as a list is:', user_message)
     print('length of user message is', len(user_message))
+    len_list1 = [2,3]
+    len_list2 = [3,4]
 
-    if len(user_message) == 2 or 3:
+    if len(user_message) in len_list1:
         list_of_semesters = ['summer','winter','fall', 'fall/winter']
         if user_message[1].lower() in list_of_semesters:
             semesters_data = return_current_semester_file()
@@ -115,8 +115,8 @@ async def on_message(message):
             reply = check_semester_availability(class_list_json, queried_course, queried_number)
         # Send the string
         await message.reply(reply)
-
-    elif len(user_message) == 3 or 4:
+    
+    elif len(user_message) in len_list2:
         queried_semester_number = queried_semester_number_str(user_message, 2)
         print(f'The queried department is: {queried_course}\nThe queried queried_course number is: {queried_number}\nThe queried semester is: {queried_semester_number}')
         print(line)
