@@ -10,7 +10,6 @@ from functions import *
 class_file = 'Data/Classes.json'
 current_semesters_file = 'Data/CurrentSemesters.json'
 prereqs_file = 'Data/Prereqs.json'
-line = '---------------------------------------------'
 client = discord.Client()
 # This is the password for the bot to enter the discord server, you have to give it access to the server on the discord developer portal
 Token = str(discord_config["token"])
@@ -35,19 +34,19 @@ async def on_message(message):
     if message.author == client.user:
         return
     
-    am = discord.AllowedMentions(users = False, everyone = False, roles = False, replied_user = True)
+    allowedMentions = discord.AllowedMentions(users = False, everyone = False, roles = False, replied_user = True)
     class_list_json = load_classes()
-    
+    line = '---------------------------------------------'
     # help message prompt
     if message.content.lower() == 'help':
-        await message.reply(f'Hi! I\'m a bot here to help you pick your classes more easily\n----------------------------------------------------------\nTo work me, simply enter the class you want to see!\nYou can either enter just the class and I will let you know which of the upcoming semesters it is offered in (ex. geog 363)\nOr you may enter the class and semester you are interested in seeing and I will tell you specifics about sections of the class offered that semester (ex. geog 363 winter 2022)\n----------------------------------------------------------\nIf I don\'t respond I am either offline or your message doesn\'t follow the correct format.\nIf you have errors or questions please ask The Help Desk or message <@650136117227683877>\n----------------------------------------------------------\n You may also type info for information regarding me, the Schedule Buddy bot :smile:', allowed_mentions = am)
+        await message.reply(f'Hi! I\'m a bot here to help you pick your classes more easily\n----------------------------------------------------------\nTo work me, simply enter the class you want to see!\nYou can either enter just the class and I will let you know which of the upcoming semesters it is offered in (ex. geog 363)\nOr you may enter the class and semester you are interested in seeing and I will tell you specifics about sections of the class offered that semester (ex. geog 363 winter 2022)\n----------------------------------------------------------\nIf I don\'t respond I am either offline or your message doesn\'t follow the correct format.\nIf you have errors or questions please ask The Help Desk or message <@650136117227683877>\n----------------------------------------------------------\n You may also type info for information regarding me, the Schedule Buddy bot :smile:', allowed_mentions = allowedMentions)
         print('help was typed, help message was sent.')
         print('---------------------------------------------')
         return
     # info message prompt
     if message.content.lower() == 'info':
         # This line allows the bot to mention people, but it doesnt ping them. It's broken on mobile (looks like it's discord's fault not mine). Found it here: https://tutorial.vcokltfre.dev/tips/mentions/
-        await message.reply(f"This bot was built by <@650136117227683877> out of love :heart:.\nI want to thank <@375852152544952322> for helping me build the bot.\n\nConcordia collects all kinds of data and its Open Data project thinks it should be accessible (I do too).\nPlease note the data is updated daily so enrollment numbers are not live, for that check your MyConcordia My Student Center.\n\nThis bot grabs data from Concordia's Open Data project here: https://github.com/opendataConcordiaU/documentation/blob/master/v1/queried_courses/schedule.md.\nThis bot operates under the Creative Commons Attribution 4.0 International Public License. https://creativecommons.org/licenses/by/4.0/legalcode\nThis bot is in no way affiliated to Concordia University.\n\nThat\'s about it, I hope the bot is helpful :smile:\n-Spencer", allowed_mentions = am)
+        await message.reply(f"This bot was built by <@650136117227683877> out of love :heart:.\nI want to thank <@375852152544952322> for helping me build the bot.\n\nConcordia collects all kinds of data and its Open Data project thinks it should be accessible (I do too).\nPlease note the data is updated daily so enrollment numbers are not live, for that check your MyConcordia My Student Center.\n\nThis bot grabs data from Concordia's Open Data project here: https://github.com/opendataConcordiaU/documentation/blob/master/v1/queried_courses/schedule.md.\nThis bot operates under the Creative Commons Attribution 4.0 International Public License. https://creativecommons.org/licenses/by/4.0/legalcode\nThis bot is in no way affiliated to Concordia University.\n\nThat\'s about it, I hope the bot is helpful :smile:\n-Spencer", allowed_mentions = allowedMentions)
         print('info was typed, info message was sent.')
         print('---------------------------------------------')
         return
@@ -62,11 +61,13 @@ async def on_message(message):
     queried_number = user_message[1]
     print('User message as a list is:', user_message)
     print('length of user message is', len(user_message))
-    len_list1 = [2,3]
-    len_list2 = [3,4]
 
-    if len(user_message) in len_list1:
+    len_list = [3,4]
+
+    if len(user_message) == 2:
         list_of_semesters = ['summer','winter','fall', 'fall/winter']
+
+        # They're asking what classes are offered in a given semester
         if user_message[1].lower() in list_of_semesters:
             semesters_data = return_current_semester_file()
             queried_semester_number = queried_semester_number_str(user_message, 1)
@@ -107,16 +108,15 @@ async def on_message(message):
 
             # Build the final string to send
             line = '----------------------------------------------------------'
-            reply = f'{line}\n**{user_message[0].upper()} courses offered in the {queried_semester_name.capitalize()} semester:**\n{line}\n**200s:**\n{sending_string_200}\n--------------------------------\n**300s:**\n{sending_string_300}\n--------------------------------\n**400s:**\n{sending_string_400}\n--------------------------------\n**Masters Level:**\n{sending_string_else}\n{line}'
+            reply = f'{line}\n**{user_message[0].upper()} {queried_semester_name.capitalize()}**\nCourses offered:\n{line}\n**200s:**\n{sending_string_200}\n--------------------------------\n**300s:**\n{sending_string_300}\n--------------------------------\n**400s:**\n{sending_string_400}\n--------------------------------\n**Masters Level:**\n{sending_string_else}\n{line}'
         
-        # If they didnt wan't the whole semester then they have asked for which semester a specific class is in
-        # TODO: could use more error handling
         else:
+            # They're asking what semesters a specific class is available in.
             reply = check_semester_availability(class_list_json, queried_course, queried_number)
-        # Send the string
+        
         await message.reply(reply)
     
-    elif len(user_message) in len_list2:
+    elif len(user_message) in len_list:
         queried_semester_number = queried_semester_number_str(user_message, 2)
         print(f'The queried department is: {queried_course}\nThe queried queried_course number is: {queried_number}\nThe queried semester is: {queried_semester_number}')
         print(line)
@@ -190,7 +190,7 @@ async def on_message(message):
         print(f'Length of the final message is: {len(sending_data)}.\n2000 characters is the maximum, if it is exceded the code throws an error and so do we to the user.\n{line}')
         if len(sending_data) >= 2000:
             await message.reply (f'**{queried_course.capitalize()} {queried_number} --- {relevant_title.title()}** has too many sections for me to send :sob:.\nYou may want to visit this link for more info on your classes:\n{current_info_link}')
-        await message.reply(f'{sending_data}', allowed_mentions = am)
+        await message.reply(f'{sending_data}', allowed_mentions = allowedMentions)
         final_data = []
     else:
         await message.reply (f'{queried_course.capitalize()} {queried_number} is not offered in the {semester_object[1]} semester.\nIf you think it is, check your spelling and make sure there is a space between the class name, number, semester, and year ex. geog 363 winter 2022')
