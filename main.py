@@ -219,7 +219,7 @@ async def configure_daily_classesjson_update():
     await asyncio.sleep((future-now).seconds)
 
 # Initialize our files on start of program, comment out while working on it, it takes a while, unless you need to initialize anything in the Data folder.
-# fetch_and_save_classes(current_semester_numbers)
+fetch_and_save_classes(current_semester_numbers)
 populate_current_semester_file(current_semester_numbers)
 daily_classesjson_update.start()
 client.run(Token)
