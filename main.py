@@ -1,7 +1,6 @@
 import asyncio
 import discord
 from discord.ext import tasks
-import re
 import datetime
 from datetime import datetime, timedelta
 from Config.config import *
@@ -56,7 +55,7 @@ async def on_message(message):
         await message.reply(f'Hi {username}!\nLove you pass it on:heart:')
 
     # These next variables store our parameters to know what the user is asking for
-    user_message = re.split(' ', message.content)
+    user_message = message.content.split(' ')
     queried_course = user_message[0].upper()
     queried_number = user_message[1]
     print('User message as a list is:', user_message)
@@ -219,7 +218,7 @@ async def configure_daily_classesjson_update():
     await asyncio.sleep((future-now).seconds)
 
 # Initialize our files on start of program, comment out while working on it, it takes a while, unless you need to initialize anything in the Data folder.
-fetch_and_save_classes(current_semester_numbers)
+# fetch_and_save_classes(current_semester_numbers)
 populate_current_semester_file(current_semester_numbers)
 daily_classesjson_update.start()
 client.run(Token)

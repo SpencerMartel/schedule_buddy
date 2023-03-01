@@ -1,6 +1,7 @@
 # Project Ignores
 Config/Config.py
 tempCodeRunnerFile.py
+__pycache__
 
 
 # Byte-compiled / optimized / DLL files
